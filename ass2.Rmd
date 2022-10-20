@@ -1,0 +1,163 @@
+---
+title: "BIOL3207 - Assignment 2"
+author: "<Bryn Roberts U6669865>"
+date: "2022-10-28"
+output: 
+  bookdown::html_document2:
+    toc: true
+    fig_caption: yes
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(metafor)
+```
+
+# **1: Statistical Analysis and Interpretation**
+
+### Task 1.1
+
+```{r}
+dat_OA <- read_csv("OA_activitydat_20190302_BIOL3207.csv")
+clark_meta <- read_csv("clark_paper_data.csv")
+```
+
+```{r}
+summary_data <-dat_OA %>% group_by(species, treatment) %>%
+              summarise(mean = mean(activity, na.rm = TRUE),
+                        sd = sd(activity, na.rm = TRUE),
+                        n = length(unique(animal_id))) %>%
+              rename(Species = "species")
+```
+
+### Task 1.2
+```{r}
+total <- cbind(clark_meta, summary_data)
+```
+
+```{r}
+final <- pivot_wider(total, names_from = treatment,
+                     names_glue = "{treatment}_{.value}",
+                     values_from = c("mean", "sd", "n"))
+```
+
+### Task 1.3
+```{r}
+meta_data_full <- read_csv("ocean_meta_data.csv")
+
+dim(meta_data_full)
+dim(final)
+
+## Do some renaming of colnames so they match meta-Data_full
+final2 <- final %>% rename("oa.mean" = CO2_mean,
+                            "oa.sd" = CO2_sd,
+                            "oa.n" = CO2_n,
+                            "ctrl.mean" = control_mean,
+                            "ctrl.sd" = control_sd,
+                            "ctrl.n" = control_n)
+
+# Reorder col names based on names in meta_data_full
+final2 <- final2[names(meta_data_full)]
+
+# Check columns are in same order
+colnames(meta_data_full) == colnames(final2)
+
+# Bind teh two dataframes
+full_final <- rbind(meta_data_full, final2)
+```
+### Task 1.4
+
+```{r}
+full_final = full_final %>% filter_at(vars(colnames(full_final)), all_vars(!(is.na(.))))
+
+dat = metafor::escalc(measure = "ROM", m1i=ctrl.mean, sd1i=ctrl.sd, n1i=ctrl.n,
+                             m2i=oa.mean, sd2i=oa.sd, n2i=oa.n, data=full_final,drop00=TRUE)
+
+dat =  dat %>% filter_at(vars(vi), all_vars(!(. > 100.0))) %>% filter_at(vars(vi), all_vars(!(. < 1*10^-5)))
+
+```
+```{r}
+#library(stringi)
+#dat$Authors = iconv(dat$Authors,from="UTF-8",to="ASCII//TRANSLIT")
+```
+
+### Task 1.5
+```{r}
+dat$est_id <- 1:nrow(dat)
+res <- rma.mv(yi, vi, random = list(~1 | Species, ~1 | Study / est_id), data=dat)
+
+
+```
+```{r}
+max(dat$vi) / min(dat$vi)
+```
+
+### Task 1.6
+```{r}
+summary(res)
+```
+```{r}
+res$ci.lb
+res$ci.ub
+```
+
+
+
+
+```{r}
+library(orchaRd)
+
+orchard_plot(res, group='Study',xlab = "Standardised mean difference", data=dat)
+
+
+```
+
+```{r}
+pacman::p_load(devtools, tidyverse, metafor, patchwork, R.rsp)
+```
+
+```{r}
+#forest(res,addpred=TRUE,showweights=FALSE, xlim=c(res$ci.lb,res$ci.ub),ylim=c(0,10),at=seq(-3,2,by=1),
+#       cex=.75,ilab=cbind(ctrl.n, ctrl.sd, ctrl.n, ctrl.sd),ilab.xpos=c(-9.5,-8,-6,-4.5), header="Author(s) and Year", slab=paste(Authors, #Year..online.,sep=', '))
+```
+
+
+```{r}
+predict(res, transf=exp, digits=2)
+```
+
+
+### Task 1.7
+
+```{r}
+ggplot(dat, aes(y = 1/sqrt(vi), x = tanh(yi))) + geom_point() + geom_vline(aes(xintercept = 0)) +
+    labs(y = "Precision (1/SE)", x = "Correlation Coefficient (r)") + theme_bw()
+```
+
+### Task 1.8
+
+```{r}
+ggplot(dat, aes(y = yi, x = Year..online., size = 1/sqrt(vi))) + geom_point(alpha = 0.3) +
+    geom_smooth(method = lm, col = "red", show.legend = FALSE) + labs(x = "Publication Year",
+    y = "Fisher's Z-transformed Correlation Coefficient (Zr)", size = "Precision (1/SE)") +
+    theme_classic()
+```
+### Task 1.9
+
+```{r}
+metareg_time <- rma.mv(yi ~ Year..online., V = vi, random = list(~1 | Species, ~1 | Study / est_id),
+    test = "t", dfs = "contain", data = dat)
+summary(metareg_time)
+```
+### Task 1.10
+
+```{r}
+metareg_time <- rma.mv(yi ~ 1/vi, V = vi, random = list(~1 | Species, ~1 | Study / est_id),
+    test = "t", dfs = "contain", data = dat)
+summary(metareg_time)
+```
+### Task 1.11
+
+### Task 1.12
+
