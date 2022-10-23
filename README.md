@@ -1,11 +1,11 @@
 # BIOL3207_Assignment2
 
 The generally workflow of the study utilises the dataset "OA_activitydat_20190302_BIOL3207.csv". **If replicating the study, use this dataset**. Initially the dataset 
-is loaded in in Task 3. This is to load the dataset object into the R studio space allowing more data wrangling and manipulation of the dataset. Github was 
+is loaded in in Task 1. This is to load the dataset object into the R studio space allowing more data wrangling and manipulation of the dataset. Github was 
 used to track changes to the R studio document throughout the study and saved to my person Github account.
 
 The goal of the study was to conduct a meta-analysis on ocean acidification effects on behaviour. This involved taking data from the Clark et al. (2020) paper named under
-"clark_paper_data.csv" and incorporating it in the larger dataset within "OA_activitydat_20190302_BIOL3207.csv". 
+"clark_paper_data.csv" and incorporating it in the larger dataset within "OA_activitydat_20190302_BIOL3207.csv" in Task 1.
 
 The dataset is on ocean acidification effects on fish behaviour that was published in Nature in 2020. The dataset includes several columns including loc, species, treatment, animal_id, sl, size, activity and a comment. More details can be found below:
 
@@ -18,8 +18,7 @@ size			Size grouping of the fish, separated at 15 mm standard length into 'big' 
 activity		Number of seconds the fish was active per minute, averaged across the duration of the trial
 comment			Comment with notes on the origin of the data
 
-The combination dataset between "OA_activitydat_20190302_BIOL3207.csv" and "clark_paper_data.csv" was further merged with a larger meta-analysis dataset called 
-"meta-data_ocean_meta.csv" which contained further studies, summary statistics and other metadata. These three datasets, in combation, was used for the meta-analysis tasks
+The combination dataset between "OA_activitydat_20190302_BIOL3207.csv" and "clark_paper_data.csv" was further merged with a larger meta-analysis dataset in Task 3 called "meta-data_ocean_meta.csv" which contained further studies, summary statistics and other metadata. These three datasets, in combation, was used for the meta-analysis tasks
 presented in the study. The combined dataset had the following metadata columns:
 
 Study   Unique identifer for each study
