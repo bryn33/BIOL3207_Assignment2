@@ -69,70 +69,66 @@ full_final <- rbind(meta_data_full, final2)
 ### Task 1.4
 
 ```{r}
-full_final = full_final %>% filter_at(vars(colnames(full_final)), all_vars(!(is.na(.))))
+full_final = full_final %>% filter_at(vars(colnames(full_final)), all_vars(!(is.na(.)))) %>% filter_at(vars(ctrl.mean), all_vars(!(. <= 0)) ) %>% filter_at(vars(oa.mean), all_vars(!(. <= 0)) )
 
-dat = metafor::escalc(measure = "ROM", m1i=ctrl.mean, sd1i=ctrl.sd, n1i=ctrl.n,
-                             m2i=oa.mean, sd2i=oa.sd, n2i=oa.n, data=full_final,drop00=TRUE)
+dat = metafor::escalc(measure = "ROM", m1i=ctrl.mean, sd1i=ctrl.sd, n1i=ctrl.n,m2i=oa.mean, sd2i=oa.sd, n2i=oa.n, data=full_final)
 
-dat =  dat %>% filter_at(vars(vi), all_vars(!(. > 100.0))) %>% filter_at(vars(vi), all_vars(!(. < 1*10^-5)))
+#dat =  dat %>% filter_at(vars(vi), all_vars(!(. > 100.0))) %>% filter_at(vars(vi), all_vars(!(. < 1*10^-5)) )
 
 ```
-```{r}
-#library(stringi)
-#dat$Authors = iconv(dat$Authors,from="UTF-8",to="ASCII//TRANSLIT")
-```
+
+
 
 ### Task 1.5
 ```{r}
 dat$est_id <- 1:nrow(dat)
-res <- rma.mv(yi, vi, random = list(~1 | Species, ~1 | Study / est_id), data=dat)
+res <- rma.mv(yi~1, vi, random = list(~1 | Species,  ~1 | Study/est_id), dfs = "contain", test = "t", data=dat)
 
 
 ```
-```{r}
-max(dat$vi) / min(dat$vi)
-```
+
 
 ### Task 1.6
 ```{r}
 summary(res)
 ```
-```{r}
-res$ci.lb
-res$ci.ub
-```
-
-
 
 
 ```{r}
 library(orchaRd)
 
-orchard_plot(res, group='Study',xlab = "Standardised mean difference", data=dat)
 
+orchaRd::orchard_plot(res, group = "Study", data =dat,
+    xlab = "log(Response ratio) (lnRR)", angle = 45)
 
 ```
 
+
+
+
+
 ```{r}
-pacman::p_load(devtools, tidyverse, metafor, patchwork, R.rsp)
+predict(res,digits=2)
+```
+```{r}
+orchaRd::i2_ml(res,data=dat)
 ```
 
 ```{r}
-#forest(res,addpred=TRUE,showweights=FALSE, xlim=c(res$ci.lb,res$ci.ub),ylim=c(0,10),at=seq(-3,2,by=1),
-#       cex=.75,ilab=cbind(ctrl.n, ctrl.sd, ctrl.n, ctrl.sd),ilab.xpos=c(-9.5,-8,-6,-4.5), header="Author(s) and Year", slab=paste(Authors, #Year..online.,sep=', '))
-```
+#On average, across reef fish, we see a decrease in behavior by -0.07 (the meta-analytic mean), but there is a weak association between behaviour when pooling across the studies. We are 95% confident that the true mean falls between -0.32 and 0.18. We do have a significant amount of heterogenity among effects (Q=74302 df=749 and p = <0.0001), with effect sizes expected to be as low as -4.28 and as high at 4.14 95% of the time (I^2 = 99.91%). We can see these statistics in relation to each other within plot X showing the mean estimate, 95% confidence interval, and prediction interval, number of samples (750) and studies (91) plotted on figure. The response ratio is the ratio of the mena level of the outcome during phase B to the mean level of the outcome during phase A. In this case 0 corresponds to the true absense of the outcome that is there is no difference between te two groups based on effect size. We can see that a large amount of studies were around the analytic mean with a few on either side. Centralised studies tend to have more because they tend to have smaller standard error in comparison. Overall, we have highly heterogeneous effect size data because sampling variation only contributes to 0.09% of the total variation in effects. From the multilevel meta-analytic model we find that only 5.81% of the total variation in effect size estimates is the result of differences between studies. Our 95% prediction intervals are wide. Effect sizes  are expected to range from -4.29 to 4.15 95% of the time with repeated experiments, suggesting a lot of inconsistency between studies. Differences among studies and species explain 6.08% and 5.15% of effect size variation, respectively.We can also see that the null hypothesis that Zr = 0 can be rejected because there is a significantly larger estimate than a correlation of 0, which we can see from the p-value being < 0.05.
 
-
-```{r}
-predict(res, transf=exp, digits=2)
 ```
 
 
 ### Task 1.7
 
 ```{r}
+
+#dat =  dat %>% filter_at(vars(vi), all_vars(!(. < 1*10^-5)) )
 ggplot(dat, aes(y = 1/sqrt(vi), x = tanh(yi))) + geom_point() + geom_vline(aes(xintercept = 0)) +
     labs(y = "Precision (1/SE)", x = "Correlation Coefficient (r)") + theme_bw()
+
+
 ```
 
 ### Task 1.8
@@ -140,9 +136,14 @@ ggplot(dat, aes(y = 1/sqrt(vi), x = tanh(yi))) + geom_point() + geom_vline(aes(x
 ```{r}
 ggplot(dat, aes(y = yi, x = Year..online., size = 1/sqrt(vi))) + geom_point(alpha = 0.3) +
     geom_smooth(method = lm, col = "red", show.legend = FALSE) + labs(x = "Publication Year",
-    y = "Fisher's Z-transformed Correlation Coefficient (Zr)", size = "Precision (1/SE)") +
+    y = "log(Response ratio) (lnRR)", size = "Precision (1/SE)") +
     theme_classic()
 ```
+```{r}
+funnel(res)
+```
+
+
 ### Task 1.9
 
 ```{r}
@@ -150,14 +151,43 @@ metareg_time <- rma.mv(yi ~ Year..online., V = vi, random = list(~1 | Species, ~
     test = "t", dfs = "contain", data = dat)
 summary(metareg_time)
 ```
+```{r}
+r2_sv <- orchaRd::r2_ml(metareg_time)
+r2_sv
+```
+
+
 ### Task 1.10
 
 ```{r}
-metareg_time <- rma.mv(yi ~ 1/vi, V = vi, random = list(~1 | Species, ~1 | Study / est_id),
+metareg_time <- rma.mv(yi ~ (1/vi), V = vi, random = list(~1 | Species, ~1 | (Study / est_id)),
     test = "t", dfs = "contain", data = dat)
 summary(metareg_time)
 ```
+```{r}
+r2_time <- orchaRd::r2_ml(metareg_time)
+r2_time
+```
+
 ### Task 1.11
 
+```{r}
+#In our initial tests it was predicted that there was a negative correlation between ocean acidification and behaviour. If we look at Figure we should expect the funnel plot to be relatively symmetric. For the most part, this does seem to be the case in pattern although we can observe that a larger majority of the studies show a positive correlation although typically quite weak in magnitude and small in sample size. Most weak correlation studies with small sample sizes tend to get published.
+
+#We tend to see that if the correlation is large enough in the negative correlation direction they tend to get published more often in comparison to the positive for small sample sizes. Furthermore, there tends to be more mid-range sample size and correlation studies being published in the positive direction in comparison to the negative. We can only speculate as to why or if this is even a real signature of publication bias. However, this might suggests that researchers that tend to find a mid-range to high correlation may be deem this a "surprising result" and are therefore more likely to publish these results in comparison to mid-range negative correlation. This may indicate file-drawer biass or that negative results tend to remain unpublished in comparison to positive studies if a mid-range - weak correlation is present.
+
+#Furthermore, we can see from our linear model fit that there appears to be a clear positive slope where the mean effect size is dragged up when the sampling variance is large. This is what you would expected with publication bias because there are less effects in the opposite direction, the direction not predicted by our hypothesis. Effects in the negative direction also tend to decrease significantly as time goes on, with a large abundance of negative studies between 2009 to 2010.  H Perhaps as time went on these studies that were quite weak with low SE are hard to publish or authors are just less likely to believe them, and therefore not publish them. Although, we tend to see an opposite effect where weak studies that are positive are being published more often between 2012-2017. It's also important observe that studies with high precision tend to be around meta-analysis mean that I calculated which may indicate more true studies. These results may indicate some type of time-lag bias as time goes on, negative low precision studies are less favorable to publish with a higher frequency of positive low precision studies being published. However, high heterogeneity / variability in effects could cause this relationship. So to could sources of non-independence or other moderators.
+
+# When looking at the meta-regression model to test for time-lag bias we can see that time-lag explains 0.022% of variation in yi. This indicates that there is very minimal evidence of time-lag bias across the pooling of the studies.Additionally, when looking at the meta-regression model to test for file-draw biases we can see that the bias explains 0% of the variation in yi. THis indicates that there is no evidence of file-draw bias across the pooling of the studies.
+#
+
+
+```
+
+
 ### Task 1.12
+
+```{r}
+
+```
 
