@@ -48,6 +48,8 @@ The data was initially cleaned up by removing missing data. The data was used to
 
 Furthermore, several studies were identified as statistically unreliable due to large effect size, small in-sample variances with large sample sizes. These samples were therefore excluded in Task 1.4 and were not included in the remaining meta-analysis tests. 
 
+The remaining analysis consists of meta-analysis modeling, graphing and inferrences discussing the possibilies of publication biases further supported by relevant literature.
+
 This study was an experimental study across 5-6 different reef fish that looked
 at comparing the effect of elevated CO2 (in ppm) relative to some control on fish behaviour and investigate the three outcomes:
 
