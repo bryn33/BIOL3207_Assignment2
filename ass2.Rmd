@@ -8,17 +8,19 @@ output:
     fig_caption: yes
 ---
 
-```{r}
+```{r,include=FALSE}
 library(tidyverse)
 library(dplyr)
 library(metafor)
+library(orchaRd)
+library(flextable)
 ```
 
 # **1: Statistical Analysis and Interpretation**
 
-### Task 1.1
+### Task 1.1 - Summary Statistics
 
-```{r}
+```{r,include=FALSE, warning=FALSE, message=FALSE, error=FALSE, echo=FALSE, quiet=TRUE}
 dat_OA <- read_csv("OA_activitydat_20190302_BIOL3207.csv")
 clark_meta <- read_csv("clark_paper_data.csv")
 ```
@@ -31,23 +33,19 @@ summary_data <-dat_OA %>% group_by(species, treatment) %>%
               rename(Species = "species")
 ```
 
-### Task 1.2
-```{r}
-total <- cbind(clark_meta, summary_data)
-```
+### Task 1.2 - Data Merge
 
 ```{r}
+total <- cbind(clark_meta, summary_data)
 final <- pivot_wider(total, names_from = treatment,
                      names_glue = "{treatment}_{.value}",
                      values_from = c("mean", "sd", "n"))
 ```
 
-### Task 1.3
-```{r}
+### Task 1.3 - Configure Dataset
+```{r, warning=FALSE, message=FALSE, error=FALSE, quiet=TRUE}
 meta_data_full <- read_csv("ocean_meta_data.csv")
 
-dim(meta_data_full)
-dim(final)
 
 ## Do some renaming of colnames so they match meta-Data_full
 final2 <- final %>% rename("oa.mean" = CO2_mean,
@@ -60,27 +58,25 @@ final2 <- final %>% rename("oa.mean" = CO2_mean,
 # Reorder col names based on names in meta_data_full
 final2 <- final2[names(meta_data_full)]
 
-# Check columns are in same order
-colnames(meta_data_full) == colnames(final2)
-
 # Bind teh two dataframes
 full_final <- rbind(meta_data_full, final2)
 ```
-### Task 1.4
+### Task 1.4 - Log Response Ratio (InRR)
 
 ```{r}
 full_final = full_final %>% filter_at(vars(colnames(full_final)), all_vars(!(is.na(.)))) %>% filter_at(vars(ctrl.mean), all_vars(!(. <= 0)) ) %>% filter_at(vars(oa.mean), all_vars(!(. <= 0)) )
 
 dat = metafor::escalc(measure = "ROM", m1i=ctrl.mean, sd1i=ctrl.sd, n1i=ctrl.n,m2i=oa.mean, sd2i=oa.sd, n2i=oa.n, data=full_final)
+test = dat %>% filter_at(vars(vi), all_vars((. < 1*10^-5)) )
 
-#dat =  dat %>% filter_at(vars(vi), all_vars(!(. < 1*10^-5)) )
+dat =  dat %>% filter_at(vars(vi), all_vars(!(. < 1*10^-5)) )
 
 ```
 
 
 
-### Task 1.5
-```{r}
+### Task 1.5 - Meta-analytic Model
+```{r, warning=FALSE, message=FALSE, error=FALSE}
 dat$est_id <- 1:nrow(dat)
 res <- rma.mv(yi~1, vi, random = list(~1 | Species,  ~1 | Study/est_id), dfs = "contain", test = "t", data=dat)
 
@@ -88,104 +84,137 @@ res <- rma.mv(yi~1, vi, random = list(~1 | Species,  ~1 | Study/est_id), dfs = "
 ```
 
 
-### Task 1.6
-```{r}
-summary(res)
+### Task 1.6 - Meta-analysis Discussion
+
+
+
+#### Meta-analysis Model Summary
+```{r, echo=FALSE}
+first_res = summary(res)
+first_res
 ```
 
-
-```{r}
-library(orchaRd)
+#### Plots
+```{r, echo=FALSE}
 
 
 orchaRd::orchard_plot(res, group = "Study", data =dat,
-    xlab = "log(Response ratio) (lnRR)", angle = 45)
+    xlab = "log(Response ratio) (lnRR)", angle = 45) +
+  labs(title="OrchaRd Plot of Pooled Studies") + 
+  theme(plot.title = element_text(color = "red", size = 20, face = "bold"),)
 
 ```
 
 
 
 
-
-```{r}
-predict(res,digits=2)
-```
-```{r}
-orchaRd::i2_ml(res,data=dat)
+#### Model Results and Prediction Intervals
+```{r, echo=FALSE}
+pred_result = predict(res,digits=2)
+pred_result
 ```
 
-```{r}
-#On average, across reef fish, we see a decrease in behavior by -0.07 (the meta-analytic mean), but there is a weak association between behaviour when pooling across the studies. We are 95% confident that the true mean falls between -0.32 and 0.18. We do have a significant amount of heterogenity among effects (Q=74302 df=749 and p = <0.0001), with effect sizes expected to be as low as -4.28 and as high at 4.14 95% of the time (I^2 = 99.91%). We can see these statistics in relation to each other within plot X showing the mean estimate, 95% confidence interval, and prediction interval, number of samples (750) and studies (91) plotted on figure. The response ratio is the ratio of the mena level of the outcome during phase B to the mean level of the outcome during phase A. In this case 0 corresponds to the true absense of the outcome that is there is no difference between te two groups based on effect size. We can see that a large amount of studies were around the analytic mean with a few on either side. Centralised studies tend to have more because they tend to have smaller standard error in comparison. Overall, we have highly heterogeneous effect size data because sampling variation only contributes to 0.09% of the total variation in effects. From the multilevel meta-analytic model we find that only 5.81% of the total variation in effect size estimates is the result of differences between studies. Our 95% prediction intervals are wide. Effect sizes  are expected to range from -4.29 to 4.15 95% of the time with repeated experiments, suggesting a lot of inconsistency between studies. Differences among studies and species explain 6.08% and 5.15% of effect size variation, respectively.We can also see that the null hypothesis that Zr = 0 can be rejected because there is a significantly larger estimate than a correlation of 0, which we can see from the p-value being < 0.05.
-
+#### I Squared analysis of Model
+```{r, echo=FALSE}
+i2 = orchaRd::i2_ml(res,data=dat)
+i2
 ```
+#### Discussion
+
+On average, across reef fish, we see a decrease in behavior by `r pred_result$pred` (the meta-analytic mean), but there is a weak association between behavior when pooling across the studies. We are 95% confident that the true mean falls between `r pred_result$ci.lb` and `r pred_result$ci.ub`. We do have a significant amount of heterogeneity among effects (Q=`r first_res$QE` df=`r first_res$k` and p = <0.0001), with effect sizes expected to be as low as `r pred_result$pi.lb` and as high at `r pred_result$pi.ub` 95% of the time (I^2 = `r i2[1]`%). We can see these statistics in relation to each other within plot X showing the mean estimate, 95% confidence interval, and prediction interval, number of samples (750) and studies (91) plotted on figure. The response ratio is the ratio of the mean level of the outcome during phase B to the mean level of the outcome during phase A. In this case 0 corresponds to the true absence of the outcome that is there is no difference between the two groups based on effect size. We can see that a large amount of studies were around the analytic mean with a few on either side. Centralized studies tend to have more because they tend to have smaller standard error in comparison. Overall, we have highly heterogeneous effect size data because sampling variation only contributes to 0.09% of the total variation in effects. From the multilevel meta-analytic model we find that only `r i2[3]` % of the total variation in effect size estimates is the result of differences between studies. Our 95% prediction intervals are wide. Effect sizes  are expected to range from `r pred_result$pi.lb` to `r pred_result$pi.ub` 95% of the time with repeated experiments, suggesting a lot of inconsistency between studies. Differences among studies and species explain 6.08% and 5.15% of effect size variation, respectively.We can also see that the null hypothesis that yi = 0 can be retained which we can see from the p-value being > 0.05.
 
 
-### Task 1.7
 
-```{r}
+### Task 1.7 - Funnel Plot
+
+```{r, echo=FALSE}
 
 #dat =  dat %>% filter_at(vars(vi), all_vars(!(. < 1*10^-5)) )
 ggplot(dat, aes(y = 1/sqrt(vi), x = tanh(yi))) + geom_point() + geom_vline(aes(xintercept = 0)) +
-    labs(y = "Precision (1/SE)", x = "Correlation Coefficient (r)") + theme_bw()
+    labs(y = "Precision (1/SE)", x = "Correlation Coefficient (r)") + theme_bw() +
+  labs(title="Funnel Plot of Pooled Studies") + 
+  theme(plot.title = element_text(color = "red", size = 20, face = "bold"),)
 
 
 ```
 
-### Task 1.8
+### Task 1.8 - Time-lag Plot
 
-```{r}
+```{r, echo=FALSE, message=FALSE, echo=FALSE}
 ggplot(dat, aes(y = yi, x = Year..online., size = 1/sqrt(vi))) + geom_point(alpha = 0.3) +
     geom_smooth(method = lm, col = "red", show.legend = FALSE) + labs(x = "Publication Year",
     y = "log(Response ratio) (lnRR)", size = "Precision (1/SE)") +
-    theme_classic()
+    theme_classic() +
+  labs(title="Time-lag Plot of Pooled Studies") + 
+  theme(plot.title = element_text(color = "red", size = 20, face = "bold"),)
 ```
 
 
 
-### Task 1.9
+### Task 1.9 - Meta-analysis Model (Year)
 
-```{r}
+
+
+#### Meta-analysis Model Summary
+
+```{r, message=FALSE, warning=FALSE, message=FALSE, error=FALSE, echo=FALSE}
 metareg_time <- rma.mv(yi ~ Year..online., V = vi, random = list(~1 | Species, ~1 | Study / est_id),
     test = "t", dfs = "contain", data = dat)
 summary(metareg_time)
 ```
-```{r}
+
+#### R square statistic
+```{r, echo=FALSE}
 r2_sv <- orchaRd::r2_ml(metareg_time)
 r2_sv
 ```
 
 
-### Task 1.10
+### Task 1.10 - Meta-analysis Model (Inverse Sampling Variance)
 
-```{r}
+
+ 
+#### Meta-analysis Model Summary
+```{r, message=FALSE, warning=FALSE, message=FALSE, error=FALSE, echo=FALSE}
 metareg_time <- rma.mv(yi ~ (1/vi), V = vi, random = list(~1 | Species, ~1 | (Study / est_id)),
     test = "t", dfs = "contain", data = dat)
 summary(metareg_time)
 ```
-```{r}
+
+#### R square statistic
+```{r, echo=FALSE}
 r2_time <- orchaRd::r2_ml(metareg_time)
 r2_time
 ```
 
-### Task 1.11
+### Task 1.11 - Publication Bias Analysis
 
-```{r}
-#In our initial tests it was predicted that there was a negative correlation between ocean acidification and behaviour. If we look at Figure we should expect the funnel plot to be relatively symmetric. For the most part, this does seem to be the case in pattern although we can observe that a larger majority of the studies show a positive correlation although typically quite weak in magnitude and small in sample size. Most weak correlation studies with small sample sizes tend to get published.
+In our initial tests it was predicted that there was a negative correlation between ocean acidification and behaviour. If we look at Figure we should expect the funnel plot to be relatively symmetric. For the most part, this does seem to be the case in pattern although we can observe that a larger majority of the studies show a positive correlation although typically quite weak in magnitude and small in sample size. Most weak correlation studies with small sample sizes tend to get published.
 
-#We tend to see that if the correlation is large enough in the negative correlation direction they tend to get published more often in comparison to the positive for small sample sizes. Furthermore, there tends to be more mid-range sample size and correlation studies being published in the positive direction in comparison to the negative. We can only speculate as to why or if this is even a real signature of publication bias. However, this might suggests that researchers that tend to find a mid-range to high correlation may be deem this a "surprising result" and are therefore more likely to publish these results in comparison to mid-range negative correlation. This may indicate file-drawer biass or that negative results tend to remain unpublished in comparison to positive studies if a mid-range - weak correlation is present.
+We tend to see that if the correlation is large enough in the negative correlation direction they tend to get published more often in comparison to the positive for small sample sizes. Furthermore, there tends to be more mid-range sample size and correlation studies being published in the positive direction in comparison to the negative. We can only speculate as to why or if this is even a real signature of publication bias. However, this might suggests that researchers that tend to find a mid-range to high correlation may be deem this a "surprising result" and are therefore more likely to publish these results in comparison to mid-range negative correlation. This may indicate file-drawer bias or that negative results tend to remain unpublished in comparison to positive studies if a mid-range - weak correlation is present.
 
-#Furthermore, we can see from our linear model fit that there appears to be a clear positive slope where the mean effect size is dragged up when the sampling variance is large. This is what you would expected with publication bias because there are less effects in the opposite direction, the direction not predicted by our hypothesis. Effects in the negative direction also tend to decrease significantly as time goes on, with a large abundance of negative studies between 2009 to 2010.  H Perhaps as time went on these studies that were quite weak with low SE are hard to publish or authors are just less likely to believe them, and therefore not publish them. Although, we tend to see an opposite effect where weak studies that are positive are being published more often between 2012-2017. It's also important observe that studies with high precision tend to be around meta-analysis mean that I calculated which may indicate more true studies. These results may indicate some type of time-lag bias as time goes on, negative low precision studies are less favorable to publish with a higher frequency of positive low precision studies being published. However, high heterogeneity / variability in effects could cause this relationship. So to could sources of non-independence or other moderators.
+Furthermore, we can see from our linear model fit that there appears to be a clear positive slope where the mean effect size is dragged up when the sampling variance is large. This is what you would expected with publication bias because there are less effects in the opposite direction, the direction not predicted by our hypothesis. Effects in the negative direction also tend to decrease significantly as time goes on, with a large abundance of negative studies between 2009 to 2010.  H Perhaps as time went on these studies that were quite weak with low SE are hard to publish or authors are just less likely to believe them, and therefore not publish them. Although, we tend to see an opposite effect where weak studies that are positive are being published more often between 2012-2017. It's also important observe that studies with high precision tend to be around meta-analysis mean that I calculated which may indicate more true studies. These results may indicate some type of time-lag bias as time goes on, negative low precision studies are less favorable to publish with a higher frequency of positive low precision studies being published. However, high heterogeneity / variability in effects could cause this relationship. So to could sources of non-independence or other moderators.
 
-# When looking at the meta-regression model to test for time-lag bias we can see that time-lag explains 0.022% of variation in effect size variance. This indicates that there is very minimal evidence of time-lag bias across the pooling of the studies. Furthermore the conditional R squared indicates that the full model explains 11% of the variance, with indicates that the species and study have a larger effect. Additionally, when looking at the meta-regression model to test for file-draw biases we can see that the bias explains 0% of the variation in effect size. This indicates that there is no evidence of file-draw bias across the pooling of the studies. The conditional R square further indicates that species and study are more influential random effects to the study than the fixed.
-#
+When looking at the meta-regression model to test for time-lag bias we can see that time-lag explains `r r2_time[1]` % of variation in effect size variance. This indicates that there is very minimal evidence of time-lag bias across the pooling of the studies. Furthermore the conditional R squared indicates that the full model explains `r r2_time[2]`% of the variance, with indicates that the species and study have a larger effect. Additionally, when looking at the meta-regression model to test for file-draw biases we can see that the bias explains `r r2_sv[1]` % of the variation in effect size. This indicates that there is no evidence of file-draw bias across the pooling of the studies. The conditional R square further indicates that species and study are more influential random effects to the study than the fixed.
 
-
-```
+From the analysis we have observed that time-lag bias may be a contributing factor to publication bias. Time-lag bias is a very common form of publication bias that results from a change in the average effect size with the accumulation of new studies. Often, under-powered studies that find surprising result are published first, and these initials studies usually stimulate a range of new experiments to verify these results on a new study system. However, these published studies may be quite small which means they are susceptible to huge sampling error. This can result in over-inflated effect sizes. Time-lag bias may also occur when the negative results affect the efficacy of a proposed commercialization of a product, such as a vaccine or medicine within a drug trial. Time-lag bias is a particularly important bias that creates an environment in which products may be inaccurately portrayed as efficacious in a shorter period of time, midst the existence of negative, though not yet published data. In the case of ocean acidication, it may the fact that the world has shifted towards sustainable and renewable solutions to reduce the amount of CO2 in the atmosphere due to climate change. Therefore, the need to that there is a relationship between ocean acidification and fish behaviour may produce ways to support both a positive and negative relationship - that is to bring to surface the effects of CO2 emissions and have a strong arguement to discontinue the processes generating it or dis-prove the effect of CO2 emissions and the retain the industry processes that are causing it.
 
 
-### Task 1.12
 
-```{r}
+### Task 1.12 - Publication bias discussion
 
-```
+In task 1.4 some of the studies were filtered out due to large sample variances. This typically arose due to the small standard deviation presented in their studies. When observing the raw data these studies stemmed from Author(s) Munday, Dixson, Pimentel and Pistevos. (a2, a24, a54 and a66). Due to the small magnitude of their standard deviation the resulting standard error and therefore the precision of their studies are extremely high resulting incorrectly estimated power of certain studies. Furthermore a large majority of studies arising from Munday et al report control and oa sample group with extremely low means which result in very high effect sizes which over-inflates the effect sizes across the pooling of all studies. In appears that in this case, even though there is clear sampling errors/incorrect data recording of certain tests, that the results were published leading to in discrepancies within the meta-analysis tests.
+
+In the paper Clark et al, it was found that based on literature view and meta-analysis of the data, they found evidence of a decline effect in ocean acidification studies on fish behaviour over time. We tend to see the opposite effect in this study where effect sizes relationship with time had a incline effect with mean effect size being smaller in magnitude in comparison to later years. The relationship seen in this analysis was more closely compatible to the decline effect in Clark et al looking at investigator effects. Clark et al looked at removing early studies from the influence on the decline effect which showed a more linear relationship across the years similar to the effect found in this study - perhaps further work of this analysis could incorporate removing early studies and seeing if the relationship changes. Interestingly, when looking at the methodology proposed in Clark et al, they seem to have used a similar amount of studies and observations in this study.
+
+Clark et al studies showed similar methodological biases due to small size sizes being prone to statistical errors leading to inflated effects. Additionally the paper showed publication bias where proliferation of studies reported strong effects, even though they may not be true such similiar to that of report presented by Munday et al. 
+
+My comments on the problematic studies found in the report are further supported by literature such as Clark et al, "Ocean acidification does not impair the behaviour of coral reef fishes". A large area of concern was the data presented by studies with no statistical significance due to their large effect sizes stemming from small variances and large sample sizes. This correlates closely with the data presented in studies a2, a24, a54, a66 which had similiar features. Furthermore, additional studies presented by Munday et al showed inflated studies with large effect sizes stemming from statistically improbable mean sizes across control and oa sample groups. In the paper by Clark et al, they found using data simulations that the large effect sizes and small within-group variances that have been reported in several previous studies are highly improbable. 
+
+Additionally. they found that the reported effects of ocean acidification on the behaviour of coral reef fishes are not reproducible, suggesting that behaviour changes will not be a major consequence for coral reef fishes in high CO2 oceans. This follows closely with the result of this study through retaining the null hypothesis that yi = 0, that is the overall analytic mean is 0. This is a large area of concern as future studies, in relation to the initial studies presented within the meta-analysis would typically build upon these studies to validate their own results on new systems. In this case, if the studies of ocean acifidation on the behaviour of coral reef fishes are not reproducible, it seems that is highly unfeasible to trust the validity of these studies as they lend no statistical or methodological relevance to the overall study space.
+
+
+### GitHub Repo
+https://github.com/bryn33/BIOL3207_Assignment2
+
 
