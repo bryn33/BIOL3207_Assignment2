@@ -44,8 +44,9 @@ presented in the study. The combined dataset had the following metadata columns:
 - oa.mean	    Mean of the experimental group
 - oa.sd	    The standard deviation of the experimental group, calculated from ctrl.vartype
 
-The data was initially cleaned up by removing missing data. The data was used to calculate the necessary statistics for study this included removing all negative control and oa 
-means for the calculation of the log response ratio for each study.
+The data was initially cleaned up by removing missing data. The data was used to calculate the necessary statistics for study this included removing all negative control and oa means for the calculation of the log response ratio for each study.
+
+Furthermore, several studies were identified as statistically unreliable due to large effect size, small in-sample variances with large sample sizes. These samples were therefore excluded in Task 1.4 and were not included in the remaining meta-analysis tests. 
 
 This study was an experimental study across 5-6 different reef fish that looked
 at comparing the effect of elevated CO2 (in ppm) relative to some control on fish behaviour and investigate the three outcomes:
