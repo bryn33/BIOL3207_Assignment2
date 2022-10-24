@@ -73,7 +73,7 @@ full_final = full_final %>% filter_at(vars(colnames(full_final)), all_vars(!(is.
 
 dat = metafor::escalc(measure = "ROM", m1i=ctrl.mean, sd1i=ctrl.sd, n1i=ctrl.n,m2i=oa.mean, sd2i=oa.sd, n2i=oa.n, data=full_final)
 
-#dat =  dat %>% filter_at(vars(vi), all_vars(!(. > 100.0))) %>% filter_at(vars(vi), all_vars(!(. < 1*10^-5)) )
+#dat =  dat %>% filter_at(vars(vi), all_vars(!(. < 1*10^-5)) )
 
 ```
 
@@ -139,9 +139,7 @@ ggplot(dat, aes(y = yi, x = Year..online., size = 1/sqrt(vi))) + geom_point(alph
     y = "log(Response ratio) (lnRR)", size = "Precision (1/SE)") +
     theme_classic()
 ```
-```{r}
-funnel(res)
-```
+
 
 
 ### Task 1.9
@@ -178,7 +176,7 @@ r2_time
 
 #Furthermore, we can see from our linear model fit that there appears to be a clear positive slope where the mean effect size is dragged up when the sampling variance is large. This is what you would expected with publication bias because there are less effects in the opposite direction, the direction not predicted by our hypothesis. Effects in the negative direction also tend to decrease significantly as time goes on, with a large abundance of negative studies between 2009 to 2010.  H Perhaps as time went on these studies that were quite weak with low SE are hard to publish or authors are just less likely to believe them, and therefore not publish them. Although, we tend to see an opposite effect where weak studies that are positive are being published more often between 2012-2017. It's also important observe that studies with high precision tend to be around meta-analysis mean that I calculated which may indicate more true studies. These results may indicate some type of time-lag bias as time goes on, negative low precision studies are less favorable to publish with a higher frequency of positive low precision studies being published. However, high heterogeneity / variability in effects could cause this relationship. So to could sources of non-independence or other moderators.
 
-# When looking at the meta-regression model to test for time-lag bias we can see that time-lag explains 0.022% of variation in yi. This indicates that there is very minimal evidence of time-lag bias across the pooling of the studies.Additionally, when looking at the meta-regression model to test for file-draw biases we can see that the bias explains 0% of the variation in yi. THis indicates that there is no evidence of file-draw bias across the pooling of the studies.
+# When looking at the meta-regression model to test for time-lag bias we can see that time-lag explains 0.022% of variation in effect size variance. This indicates that there is very minimal evidence of time-lag bias across the pooling of the studies. Furthermore the conditional R squared indicates that the full model explains 11% of the variance, with indicates that the species and study have a larger effect. Additionally, when looking at the meta-regression model to test for file-draw biases we can see that the bias explains 0% of the variation in effect size. This indicates that there is no evidence of file-draw bias across the pooling of the studies. The conditional R square further indicates that species and study are more influential random effects to the study than the fixed.
 #
 
 
