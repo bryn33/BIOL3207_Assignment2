@@ -48,7 +48,7 @@ The data was initially cleaned up by removing missing data. The data was used to
 
 Furthermore, several studies were identified as statistically unreliable due to large effect size, small in-sample variances with large sample sizes. These samples were therefore excluded in Task 1.4 and were not included in the remaining meta-analysis tests. 
 
-The remaining analysis consists of meta-analysis modeling, graphing and inferrences discussing the possibilies of publication biases further supported by relevant literature.
+The remaining analysis consists of using the metafor package to produce meta-analysis modeling, graphing and inferrences discussing the possibilies of publication biases further supported by relevant literature.
 
 This study was an experimental study across 5-6 different reef fish that looked
 at comparing the effect of elevated CO2 (in ppm) relative to some control on fish behaviour and investigate the three outcomes:
@@ -57,5 +57,5 @@ at comparing the effect of elevated CO2 (in ppm) relative to some control on fis
 - understand how variable the effect size is within the literature
 - what factors (biological, methodological, publication practices) explain variation in effect size.
 
-The study uses a range of different libraries including pacman, dplyr, bookdown, tidyverse, ggforce, flextable, latex2exp, png, magick. 
+The study uses a range of different libraries including pacman, dplyr, tidyverse, metafor and orchaRD.
 These packages enable library loading/installing, rendering and datatable capabilites.
